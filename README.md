@@ -2,7 +2,7 @@
 a memory manager with various tools all running inside of one window.  
 it can read memory through a usermode handle or through a vulnurable driver which is loaded when needed.
 
-the project features:
+the project features a:
 - page table viewer.
 - structure viewer.
 - memory dumper.
