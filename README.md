@@ -9,7 +9,7 @@ the project features:
 
 ![image](https://i.gyazo.com/e9a78530474efa85ffc9c92a21f16e3e.png)
 ![image](https://i.gyazo.com/4851511c3130077275b942b4bec20d5f.png)
-![image](https://i.gyazo.com/eeeeccf6d437368eb09b4f89ed3dae7d.mp4)
+![image](https://media.giphy.com/media/YSNZ3Mc1PynbaxSUuY/giphy.gif)
 
 included dependencies:
  - [gui manager](https://github.com/ImShotZz/GuiManager)
