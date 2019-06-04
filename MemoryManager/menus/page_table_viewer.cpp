@@ -10,6 +10,7 @@
 namespace global
 {
 	extern std::unique_ptr<memory_interface::memory> mem;
+	extern std::unique_ptr<menus::debug_log::logger> logger; // could remove
 }
 
 namespace ImGui
@@ -21,7 +22,7 @@ namespace ImGui
 
 		std::stringstream stream;
 		stream << index_stream.str() << ": 0x" << std::hex << val;
-		return TreeNode(stream.str().c_str());
+		return TreeNode(std::to_string(prefix).c_str(), stream.str().c_str());
 	}
 
 	void TextC(std::uint64_t val, std::string_view prefix = "")
@@ -61,8 +62,9 @@ namespace menus
 			// page_table
 			//
 			page_table::page_table(std::uint64_t addr)
+				: _base_addr(addr)
 			{
-				_entry_addrs = global::mem->get_driver()->read_physical_memory<std::array<entry_addr, 512>>(addr);
+				_entry_addrs = global::mem->get_driver()->read_physical_memory<std::array<entry_addr, 512>>(_base_addr);
 			}
 
 			std::size_t page_table::get_size() const
@@ -73,6 +75,11 @@ namespace menus
 			std::shared_ptr<page_table_entry> page_table::get_page_table_entry(int idx) const
 			{
 				return std::make_unique<page_table_entry>(_entry_addrs[idx]);
+			}
+
+			void page_table::set_page_table_entry(int idx, entry_addr addr) const
+			{
+				global::mem->get_driver()->write_physical_memory<std::uint64_t>(_base_addr + idx * sizeof(std::uint64_t), addr.value);
 			}
 		}
 
@@ -107,13 +114,84 @@ namespace menus
 					};
 
 					ImGui::Columns(2, "page_table_entry", true);
-					for (auto val : pml4e_info)
+					for (auto j = 0u; j < pml4e_info.size(); ++j)
 					{
+						auto val = pml4e_info[j];
+
 						ImGui::Text(val.first.data());
 						ImGui::NextColumn();
 						ImGui::TextC(val.second);
+
+						static char text_edit[17];
+						if (ImGui::BeginPopup(std::to_string(j).c_str()))
+						{
+							ImGui::InputText("##val_edit", text_edit, sizeof(text_edit), ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_CharsNoBlank);
+							ImGui::SameLine();
+							if (ImGui::Button("apply"))
+							{
+								auto val_edit = static_cast<std::uint64_t>(strtol(text_edit, 0, 16));
+
+								switch (j)
+								{
+								case 0:
+									pte_addr.present = val_edit;
+									break;
+								case 1:
+									pte_addr.rw = val_edit;
+									break;
+								case 2:
+									pte_addr.user = val_edit;
+									break;
+								case 3:
+									pte_addr.write_through = val_edit;
+									break;
+								case 4:
+									pte_addr.cache_disable = val_edit;
+									break;
+								case 5:
+									pte_addr.accessed = val_edit;
+									break;
+								case 6:
+									pte_addr.dirty = val_edit;
+									break;
+								case 7:
+									pte_addr.pat = val_edit;
+									break;
+								case 8:
+									pte_addr.global = val_edit;
+									break;
+								case 9:
+									pte_addr.ignored_1 = val_edit;
+									break;
+								case 10:
+									pte_addr.page_frame = val_edit;
+									break;
+								case 11:
+									pte_addr.ignored_3 = val_edit;
+									break;
+								case 12:
+									pte_addr.xd = val_edit;
+									break;
+								}
+
+								page_table->set_page_table_entry(i, pte_addr);
+								ImGui::CloseCurrentPopup();
+							}
+							ImGui::EndPopup();
+						}
+
+						if (ImGui::IsItemClicked(1))
+						{
+							std::stringstream stream;
+							stream << std::hex << val.second;
+							auto size = stream.str().copy(text_edit, stream.str().length());
+							text_edit[size] = '\0';
+
+							ImGui::OpenPopup(std::to_string(j).c_str());
+						}
 						ImGui::NextColumn();
 					}
+
 					ImGui::Columns(1);
 
 					auto opos = ImGui::GetCursorPos().x;

@@ -48,8 +48,10 @@ namespace menus
 				explicit page_table(std::uint64_t addr);
 				std::size_t get_size() const;
 				std::shared_ptr<page_table_entry> get_page_table_entry(int idx) const;
+				void set_page_table_entry(int idx, entry_addr addr) const;
 			private:
 				std::array<entry_addr, 512> _entry_addrs;
+				std::uint64_t _base_addr;
 			};
 		}
 	}
