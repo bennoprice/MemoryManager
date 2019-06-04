@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include "bypass/driver.hpp"
 #include "bypass/system.hpp"
 #include "bypass/process.hpp"
@@ -11,15 +12,14 @@ namespace memory_interface
 	private:
 		struct proc_info
 		{
-			explicit proc_info() = default;
-			explicit proc_info(std::wstring_view proc_name, std::uint64_t proc_base_addr, std::uint32_t proc_id);
-			std::string name;
-			std::string base_addr;
-			std::string id;
+			std::wstring name;
+			std::uint64_t base_addr;
+			std::uint32_t id;
 		};
 	public:
 		explicit memory() = default;
 		void attach(std::uint32_t proc_id, std::wstring_view proc_name, bool use_driver);
+		void on_attach(std::function<void()> action);
 
 		std::shared_ptr<usermode::handle> get_user_process() const;
 		std::shared_ptr<bypass::process> get_kernel_process() const;
@@ -52,6 +52,7 @@ namespace memory_interface
 		std::shared_ptr<bypass::system> _system = nullptr;
 		std::shared_ptr<bypass::process> _kernel_process = nullptr;
 
+		std::vector<std::function<void()>> _on_attach_events;
 		proc_info _proc_info;
 	};
 }

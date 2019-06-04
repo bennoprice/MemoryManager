@@ -11,25 +11,10 @@ namespace global
 
 namespace memory_interface
 {
-	memory::proc_info::proc_info(std::wstring_view proc_name, std::uint64_t proc_base_addr, std::uint32_t proc_id)
-	{
-		char buf[MAX_PATH];
-		wcstombs_s(nullptr, buf, proc_name.data(), sizeof(buf));
-		name = buf;
-
-		std::stringstream stream;
-		stream << "0x" << std::hex << proc_base_addr;
-		base_addr = stream.str();
-
-		id = std::to_string(proc_id);
-	}
-
 	void memory::attach(std::uint32_t proc_id, std::wstring_view proc_name, bool use_driver)
 	{
 		_user_process = nullptr;
 		_kernel_process = nullptr;
-
-		std::uint64_t base_addr;
 
 		if (use_driver)
 		{
@@ -39,17 +24,27 @@ namespace memory_interface
 				return;
 			}
 			_kernel_process = std::make_shared<bypass::process>(proc_id, get_driver(), get_system());
-			base_addr = _kernel_process->get_module_base();
+			_proc_info.base_addr = _kernel_process->get_module_base();
 			global::logger->log("[info] kernel attached to process: %d", proc_id);
 		}
 		else
 		{
 			_user_process = std::make_shared<usermode::handle>(proc_id);
-			base_addr = _user_process->get_module_base(proc_name);
+			_proc_info.base_addr = _user_process->get_module_base(proc_name);
 			global::logger->log("[info] usermode attached to process: %d", proc_id);
 		}
 
-		_proc_info = proc_info(proc_name, base_addr, proc_id);
+		_proc_info.id = proc_id;
+		_proc_info.name = proc_name;
+
+		for (auto& on_attach : _on_attach_events)
+			on_attach();
+	}
+
+	void memory::on_attach(std::function<void()> action)
+	{
+		global::logger->log("on attach even registered");
+		_on_attach_events.push_back(action);
 	}
 
 	std::shared_ptr<usermode::handle> memory::get_user_process() const

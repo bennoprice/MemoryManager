@@ -9,6 +9,8 @@
 // make overlay show attached process information
 // make driver also use pml4 class from page_table_viewer during linear address translation
 // change proc_info, make class maybe
+// look through all files and implement on_attach
+// can maybe remove is_attached
 
 namespace global
 {

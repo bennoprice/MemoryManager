@@ -212,13 +212,26 @@ namespace menus
 
 		void render()
 		{
+			static memory::entry_addr cr3;
+			static bool once = []()
+			{
+				global::mem->on_attach([]()
+				{
+					if (global::mem->is_using_driver())
+						cr3 = { global::mem->get_kernel_process()->get_dirbase() };
+					else
+						cr3 = { 0 };
+				});
+				return true;
+			} ();
+
 			if (!config::show_page_table_viewer)
 				return;
 
 			ImGui::SetNextWindowSize({ 500, 600 }, ImGuiCond_FirstUseEver);
 			ImGui::Begin("page table viewer", &config::show_page_table_viewer);
 
-			if (global::mem->get_kernel_process() == nullptr)
+			if (!cr3.value)
 			{
 				ImGui::Text("you are currently not attached to a process using the driver");
 				ImGui::Spacing();
@@ -227,9 +240,7 @@ namespace menus
 				return;
 			}
 
-			static memory::entry_addr cr3 = { global::mem->get_kernel_process()->get_dirbase() };
 			iterate_page_table_entries(PFN_TO_PAGE(cr3.page_frame));
-
 			ImGui::End();
 		}
 	}
